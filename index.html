@@ -216,7 +216,6 @@ td:first-child,th:first-child{text-align:left}
 <div class="card">
   <h2 id="t_ordersA">-</h2>
   <div id="orderA"></div>
-  <div class="sub mt8" id="stakeEarnedA"></div>
 </div>
 
 <!-- 直推列表占位槽 — 切换Tab时直推卡片会被移入此处 -->
@@ -244,7 +243,6 @@ td:first-child,th:first-child{text-align:left}
 <div class="card">
   <h2 id="t_ordersB">-</h2>
   <div id="orderB"></div>
-  <div class="sub mt8" id="stakeEarnedB"></div>
 </div>
 
 <!-- 直推列表占位槽 — 切换Tab时直推卡片会被移入此处 -->
@@ -1418,12 +1416,6 @@ async function loadStakingOrders(who) {
   const bo = await V.activeOrder(who, 1).catch(() => Z3());
   _renderOrder('orderA', 'A', ao);
   _renderOrder('orderB', 'B', bo);
-  try {
-    const si = await VIEW.stakingInfo(who).catch(() => null);
-    const earned = si ? fmt(si[8], 18, ' BNIX') : '-';
-    tv('stakeEarnedA', 'Total Staking Earned: ' + earned);
-    tv('stakeEarnedB', 'Total Staking Earned: ' + earned);
-  } catch {}
 }
 function _renderOrder(elId, pool, o) {
   const el = $(elId); if (!el) return;
@@ -1551,8 +1543,6 @@ async function refreshAStaking() {
   try {
     const ao = await V.activeOrder(who, 0).catch(() => Z3());
     _renderOrder('orderA', 'A', ao);
-    const si = await VIEW.stakingInfo(who).catch(() => null);
-    if (si) tv('stakeEarnedA', 'Total Staking Earned: ' + fmt(si[8], 18, ' BNIX'));
   } catch (e) { console.error(e); lg('BNIX Staking refresh error'); }
 }
 
@@ -1562,8 +1552,6 @@ async function refreshBStaking() {
   try {
     const bo = await V.activeOrder(who, 1).catch(() => Z3());
     _renderOrder('orderB', 'B', bo);
-    const si = await VIEW.stakingInfo(who).catch(() => null);
-    if (si) tv('stakeEarnedB', 'Total Staking Earned: ' + fmt(si[8], 18, ' BNIX'));
   } catch (e) { console.error(e); lg('BNI Staking refresh error'); }
 }
 
