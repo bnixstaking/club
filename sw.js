@@ -21,7 +21,7 @@ const POLICY = Object.freeze({
   //   await crypto.subtle.digest('SHA-256', new TextEncoder().encode(htmlText))
   //     .then(b => btoa(String.fromCharCode(...new Uint8Array(b))))
   // Leave empty array to skip HTML hash pinning (only origin enforced).
-  PINNED_HTML_HASHES: Object.freeze(['V4LOyVsbbJHKtN+AC+8m50J6O28Q1O80BJas3eJgBIM=']),
+  PINNED_HTML_HASHES: Object.freeze(['CgXT36n4N2hCljC9g6nQY9SCsTl7km5d3AcaUD6Kepc=']),
   // How often to check for SW updates (seconds)
   UPDATE_CHECK_INTERVAL_SEC: 20
 });
@@ -101,13 +101,13 @@ self.addEventListener('fetch', function (ev) {
 
   // Allow local debug origins: skip HTTPS + canonical prefix enforcement
   // so that http://localhost:8770 / http://127.0.0.1:8545 can be served.
-  // NOTE: This bypass also skips HTML hash pinning for local origins.
-  if (req.mode === 'navigate' || req.destination === 'document') {
-    var localDebugRe = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/.*)?$/i;
-    if (localDebugRe.test(url)) {
-      // Let it pass without HTTPS, canonical prefix, or hash checks
-      return;
-    }
+  // NOTE: This bypass also skips HTML hash pinning for local origins, and
+  // applies to every request (not only documents) so sub-app assets under
+  // /farm/ can load during local testing.
+  var localDebugRe = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/.*)?$/i;
+  if (localDebugRe.test(url)) {
+    // Let it pass without HTTPS, canonical prefix, or hash checks
+    return;
   }
 
   // Pass through non-GET navigation-less (e.g. CORS preflight, POST RPC).
@@ -146,10 +146,17 @@ self.addEventListener('fetch', function (ev) {
     return;
   }
 
-  // 2) HTML INTEGRITY PIN (optional, only for main page navigation)
-  var isHtmlNav = (req.mode === 'navigate') ||
-                  (req.destination === 'document') ||
-                  (/\/(index|mainindex)\.html(\?|#|$)/.test(url) && req.headers.get('Accept') && req.headers.get('Accept').indexOf('text/html') !== -1);
+  // 2) HTML INTEGRITY PIN (optional, MAIN DOCUMENT ONLY)
+  //    This SW is registered at the site root (scope './'), so it also
+  //    intercepts navigations to same-origin sub-apps such as /farm/.
+  //    Pinning every navigation would 403 any sub-app whose HTML is not
+  //    pinned, so the pin is narrowed to the root document.
+  var isMainDoc = false;
+  try {
+    var _u = new URL(url);
+    isMainDoc = (_u.pathname === '/' || /^\/(index|mainindex)\.html$/.test(_u.pathname));
+  } catch (_) {}
+  var isHtmlNav = (req.mode === 'navigate' || req.destination === 'document') && isMainDoc;
 
   if (isHtmlNav && POLICY.PINNED_HTML_HASHES.length > 0) {
     ev.respondWith((async function () {

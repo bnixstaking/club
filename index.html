@@ -49,6 +49,9 @@ td:first-child,th:first-child{text-align:left}
 .mb8{margin-bottom:8px} .mt8{margin-top:8px} .tac{text-align:center}
 .header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
 .header-right{display:flex;align-items:center;gap:8px}
+/* 生态农场入口（B 方案：同源子页跳转 ./farm/） */
+button.farm-link{background:#0f766e;font-size:11px;padding:4px 8px;border-radius:5px}
+button.farm-link:hover:not(:disabled){background:#0d9488}
 /* === Tabs === */
 .tab-nav{display:flex;gap:4px;margin:12px 0 8px}
 .tab-btn{flex:1;padding:9px 0;text-align:center;background:#1a2233;color:#94a3b8;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
@@ -87,6 +90,7 @@ td:first-child,th:first-child{text-align:left}
 <div class="header">
 <h1>BNIX Dual Linkage Engine <span class="addr" id="wAddr"></span></h1>
 <div class="header-right">
+  <button class="farm-link" onclick="openFarm()" aria-label="生态农场" title="生态农场 · 链上农场游戏">生态农场</button>
   <span class="conn-dot" id="connDot" title="已连接"></span>
   <select id="langSel" onchange="onLangChange()" aria-label="切换语言"><option value="zh">中文</option><option value="en">English</option><option value="hi">हिन्दी</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option></select>
   <button class="dc" onclick="disconnect()" aria-label="断开钱包" title="断开钱包">✕</button>
@@ -771,7 +775,7 @@ function verifyDomain() {
 //   3. CSP script-src hash     browser-natively protects inline scripts
 //   4. verifyDomain()          origin+path binding (anti-phishing)
 const SW_HASH_PLACEHOLDER = '00000000000000000000000000000000000000000000=';
-const PINNED_SW_HASH = 'lZiMVoHfaYSVXiHPY3+1jx5utlSoc1blw20RRWKgVQ8=';
+const PINNED_SW_HASH = 'kCwC0wmfsZJkGRDKtG+GgOQEYUAkUKoyu5oJORR1bG0=';
 async function selfIntegrityCheck() {
   try {
     const scripts = document.querySelectorAll('script:not([src])');
@@ -818,7 +822,7 @@ async function verifySWHash() {
   return true;
 }
 
-const SW_REGISTER_URL = 'sw.js?v=BNIX-20260905-2';
+const SW_REGISTER_URL = 'sw.js?v=BNIX-20261029-1';
 
 async function registerSecureSW() {
   if (!('serviceWorker' in navigator)) return false;
@@ -1894,6 +1898,17 @@ async function triggerSweep() {
 function copyAddr() {
   if (!U) return;
   navigator.clipboard.writeText(U).then(() => toast(TR('copied'), 'ok')).catch(() => lg('复制失败'));
+}
+
+// ==================== 生态农场入口（B 方案：同源子页跳转） ====================
+/** 跳转到 ./farm/（生态农场 · 链上农场游戏，React 构建产物，独立演进）。
+ *  ⚠️ 避坑: 农场与主站同源且同处根 SW 作用域，sw.js 的 HTML 哈希钉必须
+ *  只作用于主文档，否则农场页会被判为篡改并返回 403（见 sw.js 的 isMainDoc）。
+ *  ⚠️ 避坑: 农场只读 RPC 走自带 10 通道故障转移池（window.__FARM_ETH__），
+ *  写操作仍走 window.ethereum，私钥与签名不离开钱包。 */
+function openFarm() {
+  try { _stopPolling(); } catch (_) {}
+  location.href = './farm/';
 }
 
 // ==================== STORAGE HELPERS ====================
